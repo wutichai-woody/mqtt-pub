@@ -1,26 +1,159 @@
 package controllers
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
-	"techberry-go/micronode/service/commons/mqtt"
+	"techberry-go/common/v2/facade"
 	"time"
 )
 
-var poolManager *mqtt.PoolManager
 var once sync.Once
 
 func init() {
 	once.Do(func() {
-		poolManager = mqtt.New()
-		defer poolManager.Close()
 	})
 
 }
 
+func (c *ServiceController) Echo(input any) (any, error) {
+	return input, nil
+}
+
+func (c *ServiceController) SyncCache(input any) (any, error) {
+	enable := c.Config.GetBool("redis.enable")
+	host := c.Config.GetString("redis.host")
+	port := c.Config.GetInt("mqtt.port")
+	dbnum := c.Config.GetInt("mqtt.dbnum")
+	poolSize := c.Config.GetInt("mqtt.poolSize")
+
+	var redis_conn facade.CacheHandler
+	if enable {
+		redis_conn = c.Connector.GetRedisConnection(host, port, dbnum, poolSize)
+	}
+	m := input.(map[string]any)
+	if _, ok := m["data"]; ok {
+		data := m["data"].([]map[string]interface{})
+		key := ""
+		value := ""
+		expire := -1
+		for _, val := range data {
+			for k, v := range val {
+				if k == "key" {
+					key = v.(string)
+				} else if k == "value" {
+					value = v.(string)
+				} else if k == "expire" {
+					expire = v.(int)
+				}
+			}
+			if key != "" && value != "" {
+				if expire == -1 {
+					expire = 10 * 365 * 24 * 60
+				}
+				redis_conn.Set(key, value, time.Duration(expire))
+			}
+		}
+	}
+	return make(map[string]any), nil
+}
+
+func (c *ServiceController) PublishMessageRead(input any) (any, error) {
+	enable := c.Config.GetBool("redis.enable")
+	host := c.Config.GetString("redis.host")
+	port := c.Config.GetInt("mqtt.port")
+	dbnum := c.Config.GetInt("mqtt.dbnum")
+	poolSize := c.Config.GetInt("mqtt.poolSize")
+
+	var redis_conn facade.CacheHandler
+	if enable {
+		redis_conn = c.Connector.GetRedisConnection(host, port, dbnum, poolSize)
+	}
+	m := input.(map[string]any)
+	for k, v := range m {
+		topicToken, err := redis_conn.Get(k, false)
+		if err == nil {
+			msg := map[string]any{
+				"topics": []string{topicToken},
+				"message": map[string]any{
+					"id": c.Handler.String(false).GenerateUuid(false),
+					"message": map[string]any{
+						"id": v,
+					},
+					"type": "MESSAGE_READ",
+				},
+			}
+			c.Broadcast(msg)
+		}
+	}
+	return make(map[string]any), nil
+}
+
+func (c *ServiceController) Broadcast(input any) (any, error) {
+	url := c.Config.GetString("mqtt.url")
+	clientId := getClientId("mqtt_pub-")
+	username := c.Config.GetString("mqtt.username")
+	password := c.Config.GetString("mqtt.password")
+	qos := c.Config.GetInt("mqtt.qos")
+
+	client := c.Connector.GetMqttConnection(url, username, password, clientId)
+	err := client.Connect()
+	if err != nil {
+		return nil, err
+	}
+	m := input.(map[string]any)
+	var topics []string
+	mapHandler := c.Handler.Map(false)
+	t, ok := mapHandler.GetByPath("topic", m)
+	if ok {
+		switch v := t.(type) {
+		case []string:
+			topics = v
+		case string:
+			topics = append(topics, v)
+		}
+	} else {
+		return make(map[string]any), errors.New("No topic.")
+	}
+	message := mapHandler.String(m, "message", "")
+	if c.Handler.String(false).IsEmptyString(message) {
+		return make(map[string]any), errors.New("No message.")
+	}
+
+	for _, topic := range topics {
+		client.PublishWithQOS(topic, qos, []byte(message))
+	}
+
+	return input, nil
+}
+
+/*
+localhost:8124/megw/apis/node/mqtt_pub/v1.0/publishMessageRead
+{
+	"topics": [
+		"topicToken1",
+		"topicToken2",
+		....
+	],
+	"message": "xxxxxxxxxxxx"
+}
+
+{
+	"redis_key1": [
+		msg_id1,
+		msg_id2,
+		....
+	],
+	"redis_key2": [
+		msg_id3,
+		msg_id4,
+		....
+	]
+}
+*/
+
+/*
 func (c *ServiceController) Reload(input any) (any, error) {
 	if poolManager != nil {
 		poolManager.Close()
@@ -29,12 +162,9 @@ func (c *ServiceController) Reload(input any) (any, error) {
 	}
 	return input, nil
 }
+*/
 
-func (c *ServiceController) Echo(input any) (any, error) {
-	fmt.Printf("pool manager : %p\n", poolManager)
-	return input, nil
-}
-
+/*
 func (c *ServiceController) Execute(input any) (any, error) {
 	m := input.(map[string]any)
 	pool_cfg, err := c.getPoolConfig(input)
@@ -115,6 +245,7 @@ func (c *ServiceController) getPoolConfig(input interface{}) (*mqtt.PoolConfig, 
 
 	return &config, nil
 }
+*/
 
 func errorStrMessage(status_code int, error_code string, err error) string {
 	return fmt.Sprintf("{\"error\": {\"code\": \"%s\", \"status_code\": %d, \"message\": \"%s\"} }", error_code, status_code, err.Error())
