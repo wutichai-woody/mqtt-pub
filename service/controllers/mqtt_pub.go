@@ -4,18 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"sync"
 	"techberry-go/common/v2/facade"
 	"time"
 )
-
-var once sync.Once
-
-func init() {
-	once.Do(func() {
-	})
-
-}
 
 func (c *ServiceController) Echo(input any) (any, error) {
 	return input, nil
@@ -75,14 +66,8 @@ func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 		topicToken, err := redis_conn.Get(k, false)
 		if err == nil {
 			msg := map[string]any{
-				"topics": []string{topicToken},
-				"message": map[string]any{
-					"id": c.Handler.String(false).GenerateUuid(false),
-					"message": map[string]any{
-						"id": v,
-					},
-					"type": "MESSAGE_READ",
-				},
+				"topics":  []string{topicToken},
+				"message": c.ServiceCommon.GetMessageSignal("MESSAGE_READ", v),
 			}
 			c.Broadcast(msg)
 		}
