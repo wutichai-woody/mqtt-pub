@@ -82,7 +82,7 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	password := c.Config.GetString("mqtt.password")
 	qos := c.Config.GetInt("mqtt.qos")
 
-	url = "tcp://mqtt:7883"
+	url = "mqtt://mqtt:7883"
 	username = "mqttuser"
 	password = "wY3h720gfRqhKhCi"
 	fmt.Printf("//HPI:MOD => url : %s\n", url)
