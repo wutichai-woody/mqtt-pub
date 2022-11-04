@@ -53,9 +53,9 @@ func (c *ServiceController) SyncCache(input any) (any, error) {
 func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 	enable := c.Config.GetBool("redis.enable")
 	host := c.Config.GetString("redis.host")
-	port := c.Config.GetInt("mqtt.port")
-	dbnum := c.Config.GetInt("mqtt.dbnum")
-	poolSize := c.Config.GetInt("mqtt.poolSize")
+	port := c.Config.GetInt("redis.port")
+	dbnum := c.Config.GetInt("redis.dbnum")
+	poolSize := c.Config.GetInt("redis.poolSize")
 
 	var redis_conn facade.CacheHandler
 	if enable {
