@@ -82,15 +82,22 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	password := c.Config.GetString("mqtt.password")
 	qos := c.Config.GetInt("mqtt.qos")
 
+	fmt.Printf("//HPI:MOD => url : %s\n", url)
+	fmt.Printf("//HPI:MOD => clientId : %s\n", clientId)
+	fmt.Printf("//HPI:MOD => username : %s\n", username)
+	fmt.Printf("//HPI:MOD => password : %s\n", password)
+	fmt.Printf("//HPI:MOD => qos : %d\n", qos)
 	client := c.Connector.GetMqttConnection(url, username, password, clientId)
 	err := client.Connect()
+	fmt.Printf("//HPI:MOD => error : %v\n", err)
 	if err != nil {
 		return nil, err
 	}
 	m := input.(map[string]any)
+	fmt.Printf("//HPI:MOD => input map : %v\n", m)
 	var topics []string
 	mapHandler := c.Handler.Map(false)
-	t, ok := mapHandler.GetByPath("topic", m)
+	t, ok := mapHandler.GetByPath("topics", m)
 	if ok {
 		switch v := t.(type) {
 		case []string:
@@ -106,10 +113,12 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 		return make(map[string]any), errors.New("No message.")
 	}
 
+	fmt.Printf("//HPI:MOD => topics : %v\n", topics)
+	fmt.Printf("//HPI:MOD => message : %s\n", message)
 	for _, topic := range topics {
 		client.PublishWithQOS(topic, qos, []byte(message))
 	}
-
+	client.Disconnect()
 	return input, nil
 }
 
