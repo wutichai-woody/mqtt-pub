@@ -1,11 +1,10 @@
 # config.yaml
-topicTokenAPI: http://localhost:8280/df/xxx/xxx
 services:
   mqtt:
     enable: true
-    url: xxxx
-    username: 127.0.0.1
-    password: 8280
+    url: tcp://mqtt:1883
+    username: admin
+    password: admin
     qos: 0
   redis:
     enable: true
