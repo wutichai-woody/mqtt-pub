@@ -13,125 +13,6 @@ import (
 	pool "github.com/jolestar/go-commons-pool/v2"
 )
 
-/*
-const DEFAULT_CONTEXT_TIMEOUT = 10 * time.Second
-
-var client_chan chan adapter.MqttClient
-
-var (
-	MqttPools   map[string]MqttPool
-	once        sync.Once
-	stoppedChan chan struct{}
-	logger      log.Modular
-)
-
-type MqttConfig struct {
-	Url      string
-	ClientId string
-	Username string
-	Password string
-}
-
-type MqttPool struct {
-	client      adapter.MqttClient
-	errors      chan error
-	connections int
-	config      *MqttConfig
-	poolSize    int // Default pool size is 90. However the default pool size from official mongo driver is 100 for golang.
-	mutex       *sync.Mutex
-}
-
-func init() {
-	once.Do(func() {
-		client_chan = make(chan adapter.MqttClient, 100)
-		stoppedChan = make(chan struct{})
-		registerListener()
-	})
-}
-
-func NewMqttPool(_logger log.Modular) chan struct{} {
-	logger = _logger
-	return stoppedChan
-}
-
-func registerListener() {
-	go func() {
-		<-stoppedChan
-		releasePool()
-	}()
-}
-
-func getContextTimeOut() (context.Context, context.CancelFunc) {
-	ctx, cancelFn := context.WithTimeout(context.Background(), DEFAULT_CONTEXT_TIMEOUT)
-	return ctx, cancelFn
-}
-
-func (m *MqttPool) Disconnect() error {
-	if err := m.client.Disconnect(); err != nil {
-		if logger != nil {
-			logger.Errorf("Close the mqtt client failed, err=%v", err)
-		}
-		return err
-	}
-	return nil
-}
-
-func (m *MqttPool) ReturnConnection(conn adapter.MqttClient) error {
-	select {
-	case client_chan <- conn:
-		m.mutex.Lock()
-		m.connections--
-		m.mutex.Unlock()
-		return nil
-	}
-}
-
-func (m *MqttPool) createChannel() {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	conn := mqtt.NewAdapterWithAuth(m.config.Url, m.config.ClientId, m.config.Username, m.config.Password)
-
-	err := conn.Connect()
-	if err == nil {
-		m.client = conn
-		client_chan <- conn
-		m.connections++
-	} else {
-		m.errors <- errors.New("can't create connection.")
-	}
-}
-
-func (m *MqttPool) GetConnection() (adapter.MqttClient, error) {
-	for {
-		select {
-		case client := <-client_chan:
-			if client.IsConnected() && client.IsConnectionOpen() {
-				return client, nil
-			} else {
-				return nil, errors.New("connection is close or disconnected.")
-			}
-		case err := <-m.errors:
-			return nil, err
-		default:
-			if m.connections < m.poolSize {
-				m.createChannel()
-			}
-		}
-	}
-}
-
-func releasePool() {
-	if logger != nil {
-		logger.Infof("Release mqtt connections from pool.")
-	}
-	for _, v := range MqttPools {
-		if err := v.client.Disconnect(); err != nil {
-			logger.Errorf("Close the mqtt client failed, err=%v", err)
-		}
-	}
-}
-*/
-
 var (
 	mqttPools   map[string]MqttPool
 	once        sync.Once
@@ -198,12 +79,15 @@ func (pMgr *PoolManager) GetMqttPool(_logger pdk.Logger, config *PoolConfig) Mqt
 	// Default value
 	if config.MaxTotal == 0 {
 		pMgr.maxTotal = 100
+		config.MaxTotal = 100
 	}
 	if config.MinIdle == 0 {
 		pMgr.minIdle = 1
+		config.MinIdle = 1
 	}
 	if config.MaxIdle == 0 {
 		pMgr.maxIdle = 2
+		config.MaxIdle = 2
 	}
 	objConfig := &pool.ObjectPoolConfig{
 		MaxTotal: config.MaxTotal,
@@ -237,6 +121,7 @@ func (m *MqttFactory) MakeObject(ctx context.Context) (*pool.PooledObject, error
 	}
 	client.SetAutoReconnect(true)
 	client.SetCleanSession(true)
+	client.SetQoS(m.config.QoS)
 	err := client.Connect()
 	if err != nil {
 		return nil, err

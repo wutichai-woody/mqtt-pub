@@ -1,12 +1,27 @@
 package controllers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
 	"techberry-go/common/v2/facade"
+	"techberry-go/micronode/service/commons/mqtt"
 	"time"
 )
+
+var isMqttPoolLoaded bool
+var pool mqtt.MqttPool
+var poolManager *mqtt.PoolManager
+
+/*
+var once sync.Once
+func init() {
+	once.Do(func() {
+
+	})
+}
+*/
 
 func (c *ServiceController) Echo(input any) (any, error) {
 	return input, nil
@@ -76,52 +91,46 @@ func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 }
 
 func (c *ServiceController) Broadcast(input any) (any, error) {
-	url := c.Config.GetString("mqtt.url")
-	clientId := getClientId("mqtt_pub-")
-	username := c.Config.GetString("mqtt.username")
-	password := c.Config.GetString("mqtt.password")
-	qos := c.Config.GetInt("mqtt.qos")
-
-	url = "mqtt://mqtt:7883"
-	username = "mqttuser"
-	password = "wY3h720gfRqhKhCi"
-	fmt.Printf("//HPI:MOD => url : %s\n", url)
-	fmt.Printf("//HPI:MOD => clientId : %s\n", clientId)
-	fmt.Printf("//HPI:MOD => username : %s\n", username)
-	fmt.Printf("//HPI:MOD => password : %s\n", password)
-	fmt.Printf("//HPI:MOD => qos : %d\n", qos)
-	client := c.Connector.GetMqttConnection(url, username, password, clientId)
-	err := client.Connect()
-	fmt.Printf("//HPI:MOD => error : %v\n", err)
+	err := c.loadPoolConfig(input)
 	if err != nil {
-		return nil, err
+		return make(map[string]any), err
 	}
+	ctx := context.Background()
+	obj1, err := pool.BorrowObject(ctx)
+	if err != nil {
+		return make(map[string]any), err
+	}
+
 	m := input.(map[string]any)
-	fmt.Printf("//HPI:MOD => input map : %v\n", m)
 	var topics []string
 	mapHandler := c.Handler.Map(false)
-	t, ok := mapHandler.GetByPath("topics", m)
-	if ok {
-		switch v := t.(type) {
-		case []string:
-			topics = v
-		case string:
-			topics = append(topics, v)
-		}
-	} else {
-		return make(map[string]any), errors.New("No topic.")
+	var t []any = mapHandler.GetArray(m, "topics")
+	topics = make([]string, len(t))
+	for i, v := range t {
+		topics[i] = fmt.Sprint(v)
 	}
+
 	message := mapHandler.String(m, "message", "")
 	if c.Handler.String(false).IsEmptyString(message) {
 		return make(map[string]any), errors.New("No message.")
 	}
-
-	fmt.Printf("//HPI:MOD => topics : %v\n", topics)
-	fmt.Printf("//HPI:MOD => message : %s\n", message)
-	for _, topic := range topics {
-		client.PublishWithQOS(topic, qos, []byte(message))
+	var o *mqtt.MqttPoolObject
+	if len(topics) > 0 {
+		o = obj1.(*mqtt.MqttPoolObject)
+		for _, topic := range topics {
+			fmt.Printf("topic : %s, message : %s\n", topic, message)
+			o.Client.Publish(topic, []byte(message))
+		}
+		err := pool.ReturnObject(ctx, obj1)
+		if err != nil {
+			return make(map[string]any), err
+		}
+		result_map := map[string]any{
+			"status": true,
+		}
+		return result_map, nil
 	}
-	client.Disconnect()
+
 	return input, nil
 }
 
@@ -246,6 +255,33 @@ func (c *ServiceController) getPoolConfig(input interface{}) (*mqtt.PoolConfig, 
 
 func errorStrMessage(status_code int, error_code string, err error) string {
 	return fmt.Sprintf("{\"error\": {\"code\": \"%s\", \"status_code\": %d, \"message\": \"%s\"} }", error_code, status_code, err.Error())
+}
+
+func (c *ServiceController) loadPoolConfig(input interface{}) error {
+	if isMqttPoolLoaded {
+		return nil
+	}
+	url := c.Config.GetString("mqtt.url")
+	username := c.Config.GetString("mqtt.username")
+	password := c.Config.GetString("mqtt.password")
+	qos := c.Config.GetInt("mqtt.qos")
+	retained := c.Config.GetBool("mqtt.retained")
+
+	config := mqtt.PoolConfig{
+		Url:      url,
+		Username: username,
+		Password: password,
+		ClientId: getClientId("pubsub"),
+		Retained: retained,
+		QoS:      qos,
+		MinIdle:  2,
+		MaxTotal: 200,
+		MaxIdle:  5,
+	}
+	poolManager = mqtt.New()
+	pool = poolManager.GetMqttPool(c.Logger, &config)
+	isMqttPoolLoaded = true
+	return nil
 }
 
 func getClientId(clientPrefix string) string {
