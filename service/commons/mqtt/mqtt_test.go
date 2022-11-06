@@ -12,6 +12,9 @@ func TestConnection(t *testing.T) {
 		ClientId: "abc",
 		Username: "mqttuser",
 		Password: "Admin#1$0",
+		MinIdle:  10,
+		MaxTotal: 100,
+		MaxIdle:  5,
 	}
 	poolManager := New()
 	pool := poolManager.GetMqttPool(nil, &config)

@@ -4,27 +4,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"techberry-go/common/v2/facade"
+	"techberry-go/micronode/service/commons/firebase"
 	"techberry-go/micronode/service/commons/mqtt"
 	"time"
 )
 
-var isMqttPoolLoaded bool
-var pool mqtt.MqttPool
-var poolManager *mqtt.PoolManager
-
-/*
-var once sync.Once
-func init() {
-	once.Do(func() {
-
-	})
-}
-*/
-
 func (c *ServiceController) Echo(input any) (any, error) {
 	return input, nil
+}
+
+func (c *ServiceController) Notify(input any) (any, error) {
+	m := input.(map[string]any)
+	output, err := firebase.SendFirebaseNotification(m)
+	if err != nil {
+		b := []byte(fmt.Sprintf("{\"error\": \"%s\"}", err.Error()))
+		return b, nil
+	}
+	return output, nil
 }
 
 func (c *ServiceController) SyncCache(input any) (any, error) {
@@ -91,12 +88,8 @@ func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 }
 
 func (c *ServiceController) Broadcast(input any) (any, error) {
-	err := c.loadPoolConfig(input)
-	if err != nil {
-		return make(map[string]any), err
-	}
 	ctx := context.Background()
-	obj1, err := pool.BorrowObject(ctx)
+	obj1, err := MqttPool.BorrowObject(ctx)
 	if err != nil {
 		return make(map[string]any), err
 	}
@@ -121,7 +114,7 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 			fmt.Printf("topic : %s, message : %s\n", topic, message)
 			o.Client.Publish(topic, []byte(message))
 		}
-		err := pool.ReturnObject(ctx, obj1)
+		err := MqttPool.ReturnObject(ctx, obj1)
 		if err != nil {
 			return make(map[string]any), err
 		}
@@ -255,39 +248,4 @@ func (c *ServiceController) getPoolConfig(input interface{}) (*mqtt.PoolConfig, 
 
 func errorStrMessage(status_code int, error_code string, err error) string {
 	return fmt.Sprintf("{\"error\": {\"code\": \"%s\", \"status_code\": %d, \"message\": \"%s\"} }", error_code, status_code, err.Error())
-}
-
-func (c *ServiceController) loadPoolConfig(input interface{}) error {
-	if isMqttPoolLoaded {
-		return nil
-	}
-	url := c.Config.GetString("mqtt.url")
-	username := c.Config.GetString("mqtt.username")
-	password := c.Config.GetString("mqtt.password")
-	qos := c.Config.GetInt("mqtt.qos")
-	retained := c.Config.GetBool("mqtt.retained")
-
-	config := mqtt.PoolConfig{
-		Url:      url,
-		Username: username,
-		Password: password,
-		ClientId: getClientId("pubsub"),
-		Retained: retained,
-		QoS:      qos,
-		MinIdle:  2,
-		MaxTotal: 200,
-		MaxIdle:  5,
-	}
-	poolManager = mqtt.New()
-	pool = poolManager.GetMqttPool(c.Logger, &config)
-	isMqttPoolLoaded = true
-	return nil
-}
-
-func getClientId(clientPrefix string) string {
-	rgen := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// Generate random client id if one wasn't supplied.
-	b := make([]byte, 16)
-	rgen.Read(b)
-	return fmt.Sprintf("%s-%x", clientPrefix, b)
 }

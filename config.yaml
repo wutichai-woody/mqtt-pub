@@ -1,14 +1,13 @@
 # config.yaml
-services:
-  mqtt:
-    enable: true
-    url: tcp://mqtt:1883
-    username: admin
-    password: admin
-    qos: 0
-  redis:
-    enable: true
-    host: redis
-    port: 6379
-    dbnum: 9
-    poolSize: 10
+mqtt:
+  enable: true
+  url: tcp://localhost:1883
+  username: admin
+  password: admin
+  qos: 0
+redis:
+  enable: true
+  host: redis
+  port: 6379
+  dbnum: 9
+  poolSize: 10

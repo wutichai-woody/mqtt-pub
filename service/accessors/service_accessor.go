@@ -14,7 +14,6 @@ type ServiceAccessor struct {
 	Logger        pdk.Logger
 	Context       pdk.Context
 	Connector     pdk.Connector
-	ServiceNode   pdk.ServiceNode
 	Config        *viper.Viper
 	Handler       facade.Handler
 	Version       string

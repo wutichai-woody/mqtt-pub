@@ -8,13 +8,12 @@ import (
 )
 
 type ServiceCommon struct {
-	Credential  *pdk.RequestCredential
-	TraceId     string
-	Logger      pdk.Logger
-	Context     pdk.Context
-	Connector   pdk.Connector
-	ServiceNode pdk.ServiceNode
-	Config      *viper.Viper
-	Handler     facade.Handler
-	Version     string
+	Credential *pdk.RequestCredential
+	TraceId    string
+	Logger     pdk.Logger
+	Context    pdk.Context
+	Connector  pdk.Connector
+	Config     *viper.Viper
+	Handler    facade.Handler
+	Version    string
 }
