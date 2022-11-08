@@ -62,7 +62,7 @@ func (c *ServiceController) SyncCache(input any) (any, error) {
 	return make(map[string]any), nil
 }
 
-func (c *ServiceController) PublishMessageRead(input any) (any, error) {
+func (c *ServiceController) PublishMessage(input any) (any, error) {
 	enable := c.Config.GetBool("redis.enable")
 	host := c.Config.GetString("redis.host")
 	port := c.Config.GetInt("redis.port")
@@ -74,12 +74,14 @@ func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 		redis_conn = c.Connector.GetRedisConnection(host, port, dbnum, poolSize)
 	}
 	m := input.(map[string]any)
+	signalType := c.Handler.Map(false).String(m, "type", "NO_SIGNAL")
 	for k, v := range m {
 		topicToken, err := redis_conn.Get(k, false)
-		if err == nil {
+		if err == nil && topicToken != "" {
+			c.Logger.Debug().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
 				"topics":  []string{topicToken},
-				"message": c.ServiceCommon.GetMessageSignal("MESSAGE_READ", v),
+				"message": c.ServiceCommon.GetMessageSignal(signalType, v),
 			}
 			c.Broadcast(msg)
 		}
