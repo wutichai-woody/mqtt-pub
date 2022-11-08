@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"techberry-go/common/v2/facade"
 	"techberry-go/micronode/service/commons/firebase"
 	"techberry-go/micronode/service/commons/mqtt"
 	"time"
@@ -25,16 +24,6 @@ func (c *ServiceController) Notify(input any) (any, error) {
 }
 
 func (c *ServiceController) SyncCache(input any) (any, error) {
-	enable := c.Config.GetBool("redis.enable")
-	host := c.Config.GetString("redis.host")
-	port := c.Config.GetInt("redis.port")
-	dbnum := c.Config.GetInt("redis.dbnum")
-	poolSize := c.Config.GetInt("redis.poolSize")
-
-	var redis_conn facade.CacheHandler
-	if enable {
-		redis_conn = c.Connector.GetRedisConnection(host, port, dbnum, poolSize)
-	}
 	m := input.(map[string]any)
 	if _, ok := m["data"]; ok {
 		data := m["data"].([]map[string]interface{})
@@ -55,33 +44,22 @@ func (c *ServiceController) SyncCache(input any) (any, error) {
 				if expire == -1 {
 					expire = 10 * 365 * 24 * 60
 				}
-				redis_conn.Set(key, value, time.Duration(expire))
+				RedisConn.Set(key, value, time.Duration(expire))
 			}
 		}
 	}
 	return make(map[string]any), nil
 }
 
-func (c *ServiceController) PublishMessage(input any) (any, error) {
-	enable := c.Config.GetBool("redis.enable")
-	host := c.Config.GetString("redis.host")
-	port := c.Config.GetInt("redis.port")
-	dbnum := c.Config.GetInt("redis.dbnum")
-	poolSize := c.Config.GetInt("redis.poolSize")
-
-	var redis_conn facade.CacheHandler
-	if enable {
-		redis_conn = c.Connector.GetRedisConnection(host, port, dbnum, poolSize)
-	}
+func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 	m := input.(map[string]any)
-	signalType := c.Handler.Map(false).String(m, "type", "NO_SIGNAL")
 	for k, v := range m {
-		topicToken, err := redis_conn.Get(k, false)
+		topicToken, err := RedisConn.Get(k, false)
 		if err == nil && topicToken != "" {
 			c.Logger.Debug().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
 				"topics":  []string{topicToken},
-				"message": c.ServiceCommon.GetMessageSignal(signalType, v),
+				"message": c.ServiceCommon.GetMessageSignal("MESSAGE_READ", v),
 			}
 			c.Broadcast(msg)
 		}
