@@ -113,7 +113,7 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 		switch v := t.(type) {
 		case string:
 			message = []byte(v)
-		case any:
+		case map[string]any:
 			b, err := json.Marshal(t)
 			if err == nil {
 				message = b
