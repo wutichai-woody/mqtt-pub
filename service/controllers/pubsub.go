@@ -69,7 +69,6 @@ generic:
 		}
 */
 func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
-	c.Logger.Info().Msgf("pubsub.publishMessageSignal() called.")
 	m := input.(map[string]any)
 	signal := ""
 	if _, ok := m["signal"]; ok {
@@ -85,9 +84,7 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 	if data == nil {
 		return make(map[string]any), errors.New("No data for publish.")
 	}
-	c.Logger.Info().Msgf("pubsub.publishMessageSignal() : %v", m)
 	for k, v := range data {
-		c.Logger.Info().Msgf("pubsub.publishMessageSignal() key : %s, v : %v", k, v)
 		topicToken, err := RedisConn.Get(k, false)
 		if err == nil && topicToken != "" {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
@@ -97,16 +94,14 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 			}
 			c.Broadcast(msg)
 		} else {
-			c.Logger.Info().Msgf("pubsub.publishMessageSignal() topic token not found.")
+			c.Logger.Debug().Msgf("pubsub.publishMessageSignal() topic token not found.")
 		}
 	}
 	return make(map[string]any), nil
 }
 
 func (c *ServiceController) PublishMessageRead(input any) (any, error) {
-	c.Logger.Info().Msgf("pubsub.publishMessageRead() called.")
 	m := input.(map[string]any)
-	c.Logger.Info().Msgf("pubsub.publishMessageRead() : %v", m)
 	for k, v := range m {
 		new_map := map[string]any{
 			"signal": "MESSAGE_READ",
@@ -129,7 +124,6 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	}
 
 	m := input.(map[string]any)
-	c.Logger.Info().Msgf("pubsub.broadcast() : %v", m)
 	var topics []string
 	if _, ok := m["topics"]; ok {
 		topics = m["topics"].([]string)
@@ -152,8 +146,6 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 			message = []byte(``)
 		}
 	}
-	fmt.Printf("topics length : %d\n", len(topics))
-	fmt.Printf("message : %s\n", message)
 
 	if c.Handler.String(false).IsEmptyString(string(message)) {
 		return make(map[string]any), errors.New("No message.")
@@ -162,7 +154,7 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	if len(topics) > 0 {
 		o = obj1.(*mqtt.MqttPoolObject)
 		for _, topic := range topics {
-			fmt.Printf("topic : %s, message : %s\n", topic, message)
+			c.Logger.Debug().Msgf("topic : %s, message : %s\n", topic, message)
 			o.Client.Publish(topic, []byte(message))
 		}
 		err := MqttPool.ReturnObject(ctx, obj1)
