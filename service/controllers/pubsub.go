@@ -52,16 +52,21 @@ func (c *ServiceController) SyncCache(input any) (any, error) {
 }
 
 func (c *ServiceController) PublishMessageRead(input any) (any, error) {
+	c.Logger.Info().Msgf("pubsub.publishMessageRead() called.")
 	m := input.(map[string]any)
+	c.Logger.Info().Msgf("pubsub.publishMessageRead() : %v", m)
 	for k, v := range m {
+		c.Logger.Info().Msgf("pubsub.publishMessageRead() key : %s, v : %v", k, v)
 		topicToken, err := RedisConn.Get(k, false)
 		if err == nil && topicToken != "" {
-			c.Logger.Debug().Msgf("found topic token : %s (%s)", topicToken, k)
+			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
 				"topics":  []string{topicToken},
 				"message": c.ServiceCommon.GetMessageSignal("MESSAGE_READ", v),
 			}
 			c.Broadcast(msg)
+		} else {
+			c.Logger.Info().Msgf("pubsub.publishMessageRead() topic token not found.")
 		}
 	}
 	return make(map[string]any), nil
@@ -75,6 +80,7 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	}
 
 	m := input.(map[string]any)
+	c.Logger.Info().Msgf("pubsub.broadcast() : %v", m)
 	var topics []string
 	mapHandler := c.Handler.Map(false)
 	var t []any = mapHandler.GetArray(m, "topics")
