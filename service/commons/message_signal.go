@@ -1,8 +1,11 @@
 package commons
 
-import "techberry-go/micronode/service/models"
+import (
+	"encoding/json"
+	"techberry-go/micronode/service/models"
+)
 
-func (c *ServiceCommon) GetMessageSignal(msg_type string, message any) map[string]any {
+func (c *ServiceCommon) GetMessageSignal(msg_type string, message any) string {
 	var model models.OutputChatMessageSignal
 	if msg_type == "MESSAGE_READ" {
 		model = models.OutputChatMessageSignal{
@@ -13,6 +16,10 @@ func (c *ServiceCommon) GetMessageSignal(msg_type string, message any) map[strin
 			Type: msg_type,
 		}
 	}
-
-	return c.Handler.Struct(false).ToMap(model)
+	b, err := json.Marshal(model)
+	if err == nil {
+		return string(b)
+	} else {
+		return ""
+	}
 }
