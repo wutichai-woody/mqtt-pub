@@ -101,6 +101,8 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 			if err == nil {
 				message = b
 			}
+		default:
+			message = []byte(``)
 		}
 	}
 
