@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"techberry-go/micronode/service/commons/firebase"
@@ -89,8 +90,21 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 		topics[i] = fmt.Sprint(v)
 	}
 
-	message := mapHandler.String(m, "message", "")
-	if c.Handler.String(false).IsEmptyString(message) {
+	var message []byte
+	if _, ok := m["message"]; ok {
+		t := m["message"]
+		switch v := t.(type) {
+		case string:
+			message = []byte(v)
+		case any:
+			b, err := json.Marshal(t)
+			if err == nil {
+				message = b
+			}
+		}
+	}
+
+	if c.Handler.String(false).IsEmptyString(string(message)) {
 		return make(map[string]any), errors.New("No message.")
 	}
 	var o *mqtt.MqttPoolObject
