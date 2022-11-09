@@ -94,7 +94,7 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 			}
 			c.Broadcast(msg)
 		} else {
-			c.Logger.Debug().Msgf("pubsub.publishMessageSignal() topic token not found.")
+			go c.Logger.Debug().Msgf("pubsub.publishMessageSignal() topic token not found.")
 		}
 	}
 	return make(map[string]any), nil
@@ -154,7 +154,7 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	if len(topics) > 0 {
 		o = obj1.(*mqtt.MqttPoolObject)
 		for _, topic := range topics {
-			c.Logger.Debug().Msgf("topic : %s, message : %s\n", topic, message)
+			go c.Logger.Info().Msgf("topic : %s, message : %s\n", topic, message)
 			o.Client.Publish(topic, []byte(message))
 		}
 		err := MqttPool.ReturnObject(ctx, obj1)
