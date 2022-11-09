@@ -71,11 +71,11 @@ generic:
 func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 	c.Logger.Info().Msgf("pubsub.publishMessageSignal() called.")
 	m := input.(map[string]any)
-	signalType := ""
-	if _, ok := m["type"]; ok {
-		signalType = m["type"].(string)
+	signal := ""
+	if _, ok := m["signal"]; ok {
+		signal = m["signal"].(string)
 	}
-	if signalType == "" {
+	if signal == "" {
 		return make(map[string]any), errors.New("No signal for publish.")
 	}
 	var data map[string]any
@@ -93,7 +93,7 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
 				"topics":  []string{topicToken},
-				"message": c.ServiceCommon.GetMessageSignal(signalType, v),
+				"message": c.ServiceCommon.GetMessageSignal(signal, v),
 			}
 			c.Broadcast(msg)
 		} else {
