@@ -131,11 +131,10 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	m := input.(map[string]any)
 	c.Logger.Info().Msgf("pubsub.broadcast() : %v", m)
 	var topics []string
-	mapHandler := c.Handler.Map(false)
-	var t []any = mapHandler.GetArray(m, "topics")
-	topics = make([]string, len(t))
-	for i, v := range t {
-		topics[i] = fmt.Sprint(v)
+	if _, ok := m["topics"]; ok {
+		topics = m["topics"].([]string)
+	} else {
+		return make(map[string]any), errors.New("No topics.")
 	}
 
 	var message []byte
