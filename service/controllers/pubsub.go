@@ -52,6 +52,23 @@ func (c *ServiceController) SyncCache(input any) (any, error) {
 	return make(map[string]any), nil
 }
 
+/*
+generic:
+
+		As-Is:
+		{
+			"user1": [1, 2, 3]
+		}
+
+	    To-Be:
+		{
+			"signal": "MESSAGE_READ",
+			"data": {
+				"user1": { "id": [1, 2, 3] }
+			}
+		}
+*/
+
 func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 	c.Logger.Info().Msgf("pubsub.publishMessageRead() called.")
 	m := input.(map[string]any)
@@ -105,6 +122,8 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 			message = []byte(``)
 		}
 	}
+	fmt.Printf("topics length : %d\n", len(topics))
+	fmt.Printf("message : %s\n", message)
 
 	if c.Handler.String(false).IsEmptyString(string(message)) {
 		return make(map[string]any), errors.New("No message.")
