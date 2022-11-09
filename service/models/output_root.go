@@ -9,7 +9,7 @@ type OutputRoot struct {
 }
 
 type OutputChatMessageSignal struct {
-	Id      string `json:"id" bson:"id"`
-	Message any    `json:"message" bson:"message"`
-	Type    string `json:"type" bson:"type"`
+	Id      string `structs:"id" json:"id" bson:"id" mapstructure:"id"`
+	Message any    `structs:"message" json:"message" bson:"message" mapstructure:"message"`
+	Type    string `structs:"type" json:"type" bson:"type" mapstructure:"type"`
 }
