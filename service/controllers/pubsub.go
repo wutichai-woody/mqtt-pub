@@ -118,7 +118,7 @@ func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 
 func (c *ServiceController) Broadcast(input any) (any, error) {
 	ctx := context.Background()
-	obj1, err := c.MqttPool.BorrowObject(ctx)
+	obj1, err := c.Mqtt.BorrowObject(ctx)
 	if err != nil {
 		return make(map[string]any), err
 	}
@@ -157,7 +157,7 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 			go c.Logger.Info().Msgf("topic : %s, message : %s\n", topic, message)
 			o.Client.Publish(topic, []byte(message))
 		}
-		err := c.MqttPool.ReturnObject(ctx, obj1)
+		err := c.Mqtt.ReturnObject(ctx, obj1)
 		if err != nil {
 			return make(map[string]any), err
 		}

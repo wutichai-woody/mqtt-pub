@@ -2,6 +2,7 @@ package commons
 
 import (
 	"techberry-go/common/v2/facade"
+	"techberry-go/common/v2/facade/adapter"
 	"techberry-go/common/v2/facade/pdk"
 
 	"github.com/spf13/viper"
