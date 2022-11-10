@@ -19,7 +19,7 @@ type ServiceController struct {
 	Config          *viper.Viper
 	Handler         facade.Handler
 	Redis           facade.CacheHandler
-	Mqtt            adapter.MqttPool
+	MqttPool        adapter.MqttPool
 	Version         string
 	ServiceAccessor *accessors.ServiceAccessor
 	ServiceCommon   *commons.ServiceCommon
