@@ -233,7 +233,7 @@ func (pMgr *PoolManager) Close() {
 }
 
 func (m *MqttFactory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
-	Debugf(logger, "create mqtt pooled object : %s, %s", m.url, m.config.ClientId)
+	Debugf(logger, "create new pooled object : %s, %s", m.url, m.config.ClientId)
 	client := mqtt.NewAdapterWithAuth(m.url, m.clientId, m.username, m.password)
 	if m.useSSL {
 		client.SetUseSSL(true)
@@ -253,6 +253,7 @@ func (m *MqttFactory) MakeObject(ctx context.Context) (*pool.PooledObject, error
 }
 
 func (f *MqttFactory) DestroyObject(ctx context.Context, object *pool.PooledObject) error {
+	Debugf(logger, "destroy pooled object")
 	mqtt := object.Object.(*MqttPoolObject)
 	mqtt.Client.Disconnect()
 	return nil
