@@ -1,17 +1,13 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
-	"os"
-	mqtt_core "techberry-go/common/v2/core/components/mqtt"
-	"techberry-go/common/v2/facade/adapter"
 	"techberry-go/micronode/service/commons/firebase"
+	"techberry-go/micronode/service/commons/mqtt"
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 func (c *ServiceController) Echo(input any) (any, error) {
@@ -121,13 +117,11 @@ func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 }
 
 func (c *ServiceController) Broadcast(input any) (any, error) {
-	/*
-		ctx := context.Background()
-		obj1, err := MqttPool.BorrowObject(ctx)
-		if err != nil {
-			return make(map[string]any), err
-		}
-	*/
+	ctx := context.Background()
+	obj1, err := MqttPool.BorrowObject(ctx)
+	if err != nil {
+		return make(map[string]any), err
+	}
 
 	m := input.(map[string]any)
 	var topics []string
@@ -156,25 +150,17 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	if c.Handler.String(false).IsEmptyString(string(message)) {
 		return make(map[string]any), errors.New("No message.")
 	}
-	//var o *mqtt.MqttPoolObject
+	var o *mqtt.MqttPoolObject
 	if len(topics) > 0 {
-		//o = obj1.(*mqtt.MqttPoolObject)
-		client, err := c.getClient()
+		o = obj1.(*mqtt.MqttPoolObject)
+		for _, topic := range topics {
+			go c.Logger.Info().Msgf("topic : %s, message : %s\n", topic, message)
+			o.Client.Publish(topic, []byte(message))
+		}
+		err := MqttPool.ReturnObject(ctx, obj1)
 		if err != nil {
 			return make(map[string]any), err
 		}
-		for _, topic := range topics {
-			go c.Logger.Info().Msgf("topic : %s, message : %s\n", topic, message)
-			client.Publish(topic, []byte(message))
-		}
-		client.CleanSession()
-		client.Disconnect()
-		/*
-			err := MqttPool.ReturnObject(ctx, obj1)
-			if err != nil {
-				return make(map[string]any), err
-			}
-		*/
 		result_map := map[string]any{
 			"status": true,
 		}
@@ -182,49 +168,6 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	}
 
 	return input, nil
-}
-
-func (c *ServiceController) getClient() (adapter.MqttClient, error) {
-	config := viper.New()
-	wd, err := os.Getwd()
-	if err != nil {
-		os.Exit(1)
-	}
-	config.SetConfigName("config")
-	config.SetConfigType("yaml")
-	config.AddConfigPath(wd)
-	config.ReadInConfig() // Find and read the config file
-
-	config.SetDefault("mqtt.url", "tcp://localhost:1883")
-	config.SetDefault("mqtt.username", "admin")
-	config.SetDefault("mqtt.password", "1234")
-	config.SetDefault("mqtt.qos", 0)
-	config.SetDefault("mqtt.retained", false)
-	config.SetDefault("mqtt.minIdle", 2)
-	config.SetDefault("mqtt.maxIdle", 5)
-	config.SetDefault("mqtt.maxTotal", 100)
-
-	url := config.GetString("mqtt.url")
-	username := config.GetString("mqtt.username")
-	password := config.GetString("mqtt.password")
-	qos := config.GetInt("mqtt.qos")
-
-	rgen := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// Generate random client id if one wasn't supplied.
-	b := make([]byte, 16)
-	rgen.Read(b)
-	clientId := string(b)
-
-	client := mqtt_core.NewAdapterWithAuth(url, clientId, username, password)
-	client.SetUseSSL(false)
-	client.SetAutoReconnect(true)
-	client.SetCleanSession(true)
-	client.SetQoS(qos)
-	err = client.Connect()
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
 }
 
 /*

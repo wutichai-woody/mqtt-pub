@@ -201,12 +201,12 @@ func (pMgr *PoolManager) GetMqttPool(_logger pdk.Logger, config *PoolConfig) Mqt
 		config.MaxTotal = 100
 	}
 	if config.MinIdle == 0 {
-		pMgr.minIdle = 1
-		config.MinIdle = 1
+		pMgr.minIdle = 2
+		config.MinIdle = 2
 	}
 	if config.MaxIdle == 0 {
-		pMgr.maxIdle = 2
-		config.MaxIdle = 2
+		pMgr.maxIdle = 50
+		config.MaxIdle = 50
 	}
 	objConfig := &pool.ObjectPoolConfig{
 		MaxTotal: config.MaxTotal,
