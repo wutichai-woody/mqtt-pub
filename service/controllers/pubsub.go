@@ -84,7 +84,10 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 		return make(map[string]any), errors.New("No data for publish.")
 	}
 	for k, v := range data {
+		c.Logger.Info().Msgf("key : %s, value : %v", k, v)
 		topicToken, err := c.Redis.Get(k, false)
+		c.Logger.Info().Msgf("err : %v", err)
+		c.Logger.Info().Msgf("topicToken : %s", topicToken)
 		if err == nil && topicToken != "" {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
@@ -101,6 +104,7 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 
 func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 	m := input.(map[string]any)
+	c.Logger.Info().Msgf("m : %v", m)
 	for k, v := range m {
 		new_map := map[string]any{
 			"signal": "MESSAGE_READ",
