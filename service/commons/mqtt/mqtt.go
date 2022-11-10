@@ -160,7 +160,7 @@ func New() *PoolManager {
 	return &PoolManager{
 		maxTotal: 100,
 		minIdle:  1,
-		maxIdle:  2,
+		maxIdle:  100,
 	}
 }
 
@@ -201,12 +201,12 @@ func (pMgr *PoolManager) GetMqttPool(_logger pdk.Logger, config *PoolConfig) Mqt
 		config.MaxTotal = 100
 	}
 	if config.MinIdle == 0 {
-		pMgr.minIdle = 2
-		config.MinIdle = 2
+		pMgr.minIdle = 1
+		config.MinIdle = 1
 	}
 	if config.MaxIdle == 0 {
-		pMgr.maxIdle = 50
-		config.MaxIdle = 50
+		pMgr.maxIdle = 100
+		config.MaxIdle = 100
 	}
 	objConfig := &pool.ObjectPoolConfig{
 		MaxTotal: config.MaxTotal,
