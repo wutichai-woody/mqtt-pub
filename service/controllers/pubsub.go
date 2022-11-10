@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"techberry-go/common/v2/facade/adapter"
 	"techberry-go/micronode/service/commons/firebase"
-	"techberry-go/micronode/service/commons/mqtt"
 	"time"
 )
 
@@ -45,7 +45,7 @@ func (c *ServiceController) SyncCache(input any) (any, error) {
 				if expire == -1 {
 					expire = 10 * 365 * 24 * 60
 				}
-				RedisConn.Set(key, value, time.Duration(expire))
+				c.Redis.Set(key, value, time.Duration(expire))
 			}
 		}
 	}
@@ -85,7 +85,7 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 		return make(map[string]any), errors.New("No data for publish.")
 	}
 	for k, v := range data {
-		topicToken, err := RedisConn.Get(k, false)
+		topicToken, err := c.Redis.Get(k, false)
 		if err == nil && topicToken != "" {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
@@ -118,7 +118,7 @@ func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 
 func (c *ServiceController) Broadcast(input any) (any, error) {
 	ctx := context.Background()
-	obj1, err := MqttPool.BorrowObject(ctx)
+	obj1, err := c.MqttPool.BorrowObject(ctx)
 	if err != nil {
 		return make(map[string]any), err
 	}
@@ -150,14 +150,14 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	if c.Handler.String(false).IsEmptyString(string(message)) {
 		return make(map[string]any), errors.New("No message.")
 	}
-	var o *mqtt.MqttPoolObject
+	var o *adapter.MqttPoolObject
 	if len(topics) > 0 {
-		o = obj1.(*mqtt.MqttPoolObject)
+		o = obj1.(*adapter.MqttPoolObject)
 		for _, topic := range topics {
 			go c.Logger.Info().Msgf("topic : %s, message : %s\n", topic, message)
 			o.Client.Publish(topic, []byte(message))
 		}
-		err := MqttPool.ReturnObject(ctx, obj1)
+		err := c.MqttPool.ReturnObject(ctx, obj1)
 		if err != nil {
 			return make(map[string]any), err
 		}

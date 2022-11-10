@@ -15,5 +15,7 @@ type ServiceCommon struct {
 	Connector  pdk.Connector
 	Config     *viper.Viper
 	Handler    facade.Handler
+	Redis      facade.CacheHandler
+	Mqtt       adapter.MqttPool
 	Version    string
 }
