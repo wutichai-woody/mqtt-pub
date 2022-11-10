@@ -70,10 +70,8 @@ generic:
 */
 func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 	m := input.(map[string]any)
-	signal := ""
-	if _, ok := m["signal"]; ok {
-		signal = m["signal"].(string)
-	}
+	signal := c.Handler.Map(false).String(m, "signal", "")
+	c.Logger.Info().Msgf("signal : %s", signal)
 	if signal == "" {
 		return make(map[string]any), errors.New("No signal for publish.")
 	}
@@ -81,6 +79,7 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 	if _, ok := m["data"]; ok {
 		data = m["data"].(map[string]any)
 	}
+	c.Logger.Info().Msgf("data : %v", data)
 	if data == nil {
 		return make(map[string]any), errors.New("No data for publish.")
 	}
