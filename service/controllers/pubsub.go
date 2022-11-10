@@ -117,6 +117,7 @@ func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 }
 
 func (c *ServiceController) Broadcast(input any) (any, error) {
+	c.Logger.Info().Msgf("broadcast called.")
 	ctx := context.Background()
 	obj1, err := c.MqttPool.BorrowObject(ctx)
 	if err != nil {
@@ -124,12 +125,24 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	}
 
 	m := input.(map[string]any)
+	c.Logger.Info().Msgf("m : %v", m)
 	var topics []string
 	if _, ok := m["topics"]; ok {
-		topics = m["topics"].([]string)
+		t := m["topics"]
+		switch v := t.(type) {
+		case []string:
+			topics = v
+		case []any:
+			topics = make([]string, len(v))
+			for i, value := range v {
+				topics[i] = fmt.Sprint(value)
+			}
+		}
 	} else {
 		return make(map[string]any), errors.New("No topics.")
 	}
+
+	c.Logger.Info().Msgf("topics : %v", topics)
 
 	var message []byte
 	if _, ok := m["message"]; ok {
@@ -146,10 +159,11 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 			message = []byte(``)
 		}
 	}
-
+	c.Logger.Info().Msgf("message : %s", message)
 	if c.Handler.String(false).IsEmptyString(string(message)) {
 		return make(map[string]any), errors.New("No message.")
 	}
+	c.Logger.Info().Msgf("topic length : %d", len(topics))
 	var o *adapter.MqttPoolObject
 	if len(topics) > 0 {
 		o = obj1.(*adapter.MqttPoolObject)
