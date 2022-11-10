@@ -99,7 +99,6 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 
 func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 	m := input.(map[string]any)
-	c.Logger.Info().Msgf("m : %v", m)
 	for k, v := range m {
 		new_map := map[string]any{
 			"signal": "MESSAGE_READ",
