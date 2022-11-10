@@ -71,7 +71,6 @@ generic:
 func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 	m := input.(map[string]any)
 	signal := c.Handler.Map(false).String(m, "signal", "")
-	c.Logger.Info().Msgf("signal : %s", signal)
 	if signal == "" {
 		return make(map[string]any), errors.New("No signal for publish.")
 	}
@@ -79,15 +78,11 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 	if _, ok := m["data"]; ok {
 		data = m["data"].(map[string]any)
 	}
-	c.Logger.Info().Msgf("data : %v", data)
 	if data == nil {
 		return make(map[string]any), errors.New("No data for publish.")
 	}
 	for k, v := range data {
-		c.Logger.Info().Msgf("key : %s, value : %v", k, v)
 		topicToken, err := c.Redis.Get(k, false)
-		c.Logger.Info().Msgf("err : %v", err)
-		c.Logger.Info().Msgf("topicToken : %s", topicToken)
 		if err == nil && topicToken != "" {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
@@ -120,7 +115,6 @@ func (c *ServiceController) PublishMessageRead(input any) (any, error) {
 }
 
 func (c *ServiceController) Broadcast(input any) (any, error) {
-	c.Logger.Info().Msgf("broadcast called.")
 	ctx := context.Background()
 	obj1, err := c.MqttPool.BorrowObject(ctx)
 	if err != nil {
@@ -128,7 +122,6 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 	}
 
 	m := input.(map[string]any)
-	c.Logger.Info().Msgf("m : %v", m)
 	var topics []string
 	if _, ok := m["topics"]; ok {
 		t := m["topics"]
@@ -145,8 +138,6 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 		return make(map[string]any), errors.New("No topics.")
 	}
 
-	c.Logger.Info().Msgf("topics : %v", topics)
-
 	var message []byte
 	if _, ok := m["message"]; ok {
 		t := m["message"]
@@ -162,10 +153,11 @@ func (c *ServiceController) Broadcast(input any) (any, error) {
 			message = []byte(``)
 		}
 	}
-	c.Logger.Info().Msgf("message : %s", message)
+
 	if c.Handler.String(false).IsEmptyString(string(message)) {
 		return make(map[string]any), errors.New("No message.")
 	}
+
 	c.Logger.Info().Msgf("topic length : %d", len(topics))
 	var o *adapter.MqttPoolObject
 	if len(topics) > 0 {
