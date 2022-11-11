@@ -82,6 +82,9 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 		return make(map[string]any), errors.New("No data for publish.")
 	}
 	for k, v := range data {
+		if c.Redis == nil {
+			return make(map[string]any), errors.New("Connection to redis have problem.")
+		}
 		topicToken, err := c.Redis.Get(k, false)
 		if err == nil && topicToken != "" {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
