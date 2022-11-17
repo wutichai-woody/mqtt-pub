@@ -64,9 +64,16 @@ generic:
 		{
 			"signal": "MESSAGE_READ",
 			"data": {
-				"user1": { "id": [1, 2, 3] }
+				"user1": { "id": [1, 2, 3], "message": "test" }
 			}
 		}
+
+		"user1_topic_token": "xxxxxx"
+
+		=> user1 => title
+		   message => body
+		   device_key => xxxx (redis)
+		   data : { "id": [1, 2, 3], "message": "test", "signal": "MESSAGE_RECEIVE" }
 */
 func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 	m := input.(map[string]any)
@@ -85,7 +92,9 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 		if c.Redis == nil {
 			return make(map[string]any), errors.New("Connection to redis have problem.")
 		}
-		topicToken, err := c.Redis.Get(k, false)
+		key_topic_token := fmt.Sprintf("%s_topic_token", k)
+		//key_device_key := fmt.Sprintf("%s_device_key", k)
+		topicToken, err := c.Redis.Get(key_topic_token, false)
 		if err == nil && topicToken != "" {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
