@@ -14,10 +14,11 @@ func (c *ServiceCommon) GetMessageReadSignal(msg_type string, message any) map[s
 	return make(map[string]any)
 }
 
-func (c *ServiceCommon) GetMessageSignal(msg_type string, message any) map[string]any {
+func (c *ServiceCommon) GetMessageSignal(msg_type string, message any, target string) map[string]any {
 	m := map[string]any{
 		"id":      c.Handler.String(false).GenerateUuid(false),
 		"message": message,
+		"target":  target,
 		"type":    msg_type,
 	}
 	return m

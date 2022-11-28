@@ -99,7 +99,7 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
 				"topics":  []string{topicToken},
-				"message": c.ServiceCommon.GetMessageSignal(signal, v),
+				"message": c.ServiceCommon.GetMessageSignal(signal, v, k),
 			}
 			c.Broadcast(msg)
 		} else {
