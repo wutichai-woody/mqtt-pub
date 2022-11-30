@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"techberry-go/common/v2/facade"
 	"techberry-go/common/v2/facade/adapter"
 	"techberry-go/micronode/service/commons/firebase"
 	"time"
@@ -12,6 +13,64 @@ import (
 
 func (c *ServiceController) Echo(input any) (any, error) {
 	return input, nil
+}
+
+func (c *ServiceController) RedisCache(input any) (any, error) {
+	m := input.(map[string]any)
+	mapHandler := c.Handler.Map(false)
+	action := mapHandler.String(m, "action", "")
+	autoRemove := mapHandler.Bool(m, "remove", true)
+	data_type := mapHandler.String(m, "type", "array")
+	expire := mapHandler.Int(m, "expire", 30)
+	dbnum := mapHandler.Int(m, "dbnum", 9)
+	if action == "set" || action == "get" {
+		redis := c.getRedisConnection(dbnum)
+		if action == "set" {
+			items := mapHandler.GetArray(m, "items")
+			for _, v := range items {
+				obj := v.(map[string]any)
+				if obj != nil {
+					key := mapHandler.String(obj, "key", "")
+					if data_type == "array" {
+						value := mapHandler.GetArray(obj, "value")
+						if value != nil {
+							b, err := json.Marshal(value)
+							if err == nil {
+								redis.Set(key, string(b), time.Duration(expire)*time.Second)
+							}
+						}
+					}
+				}
+			}
+			b := []byte("{\"status\": true}")
+			return b, nil
+		} else {
+			var result map[string]any
+
+			result = make(map[string]any)
+			items := mapHandler.GetArray(m, "items")
+			for _, item := range items {
+				key := item.(string)
+				if key != "" {
+					s, err := redis.Get(key, autoRemove)
+					if err == nil {
+						var value any
+						err := json.Unmarshal([]byte(s), &value)
+						if err == nil {
+							result[key] = value
+						}
+					}
+				}
+			}
+			result_map := map[string]any{
+				"items": result,
+			}
+			return result_map, nil
+		}
+	} else {
+		b := []byte(fmt.Sprintf("{\"error\": \"%s\"}", "action is not support."))
+		return b, nil
+	}
 }
 
 func (c *ServiceController) Notify(input any) (any, error) {
@@ -311,4 +370,22 @@ func (c *ServiceController) getPoolConfig(input interface{}) (*mqtt.PoolConfig, 
 
 func errorStrMessage(status_code int, error_code string, err error) string {
 	return fmt.Sprintf("{\"error\": {\"code\": \"%s\", \"status_code\": %d, \"message\": \"%s\"} }", error_code, status_code, err.Error())
+}
+
+func (c *ServiceController) getRedisConnection(dbnum int) facade.CacheHandler {
+	config := c.Config
+	config.SetDefault("redis.enable", false)
+	redis_enable := config.GetBool("redis.enable")
+
+	if redis_enable {
+		//set default value
+		config.SetDefault("redis.host", "redis")
+		config.SetDefault("redis.port", 6379)
+
+		host := config.GetString("redis.host")
+		port := config.GetInt("redis.port")
+
+		return c.Connector.GetRedisConnection(host, port, dbnum, 1)
+	}
+	return nil
 }
