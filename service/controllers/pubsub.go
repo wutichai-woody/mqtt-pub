@@ -21,27 +21,21 @@ func (c *ServiceController) RedisCache(input any) (any, error) {
 	mapHandler := c.Handler.Map(false)
 	action := mapHandler.String(m, "action", "")
 	autoRemove := mapHandler.Bool(m, "remove", true)
-	data_type := mapHandler.String(m, "type", "array")
 	expire := mapHandler.Int(m, "expire", 30)
 	dbnum := mapHandler.Int(m, "dbnum", 9)
 	c.Logger.Info().Msgf("action : %s", action)
 	if action == "set" || action == "get" {
 		redis := c.getRedisConnection(dbnum)
-		c.Logger.Info().Msgf("redis connnection : %v", redis)
 		if action == "set" {
 			items := mapHandler.GetArray(m, "items")
 			for _, v := range items {
 				obj := v.(map[string]any)
 				if obj != nil {
 					key := mapHandler.String(obj, "key", "")
-					if data_type == "array" {
-						value := mapHandler.GetArray(obj, "value")
-						if value != nil {
-							b, err := json.Marshal(value)
-							if err == nil {
-								redis.Set(key, string(b), time.Duration(expire)*time.Second)
-							}
-						}
+					value := mapHandler.String(obj, "value", "")
+					b, err := json.Marshal(value)
+					if err == nil {
+						redis.Set(key, string(b), time.Duration(expire)*time.Second)
 					}
 				}
 			}
@@ -393,7 +387,6 @@ func (c *ServiceController) getRedisConnection(dbnum int) facade.CacheHandler {
 		c.Logger.Info().Msgf("redis_port : %d", port)
 		c.Logger.Info().Msgf("dbnum : %d", dbnum)
 		connector := redis.NewAdapter(host, port, dbnum, 10)
-		c.Logger.Info().Msgf("redis_connector : %v", connector)
 		return connector
 	}
 	return nil
