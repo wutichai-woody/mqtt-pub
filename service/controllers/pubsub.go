@@ -23,7 +23,6 @@ func (c *ServiceController) RedisCache(input any) (any, error) {
 	autoRemove := mapHandler.Bool(m, "remove", true)
 	expire := mapHandler.Int(m, "expire", 30)
 	dbnum := mapHandler.Int(m, "dbnum", 9)
-	c.Logger.Info().Msgf("action : %s", action)
 	if action == "set" || action == "get" {
 		redis := c.getRedisConnection(dbnum)
 		if action == "set" {
@@ -35,12 +34,14 @@ func (c *ServiceController) RedisCache(input any) (any, error) {
 					value := mapHandler.String(obj, "value", "")
 					b, err := json.Marshal(value)
 					if err == nil {
-						redis.Set(key, string(b), time.Duration(expire)*time.Second)
+						err = redis.Set(key, string(b), time.Duration(expire)*time.Second)
 					}
 				}
 			}
 			b := []byte("{\"status\": true}")
-			return b, nil
+			result_map := make(map[string]any)
+			json.Unmarshal(b, &result_map)
+			return result_map, nil
 		} else {
 			var result map[string]any
 
@@ -374,7 +375,6 @@ func (c *ServiceController) getRedisConnection(dbnum int) facade.CacheHandler {
 	config.SetDefault("redis.enable", false)
 	redis_enable := config.GetBool("redis.enable")
 
-	c.Logger.Info().Msgf("redis_enable : %t", redis_enable)
 	if redis_enable {
 		//set default value
 		config.SetDefault("redis.host", "redis")
@@ -383,9 +383,6 @@ func (c *ServiceController) getRedisConnection(dbnum int) facade.CacheHandler {
 		host := config.GetString("redis.host")
 		port := config.GetInt("redis.port")
 
-		c.Logger.Info().Msgf("redis_host : %s", host)
-		c.Logger.Info().Msgf("redis_port : %d", port)
-		c.Logger.Info().Msgf("dbnum : %d", dbnum)
 		connector := redis.NewAdapter(host, port, dbnum, 10)
 		return connector
 	}
