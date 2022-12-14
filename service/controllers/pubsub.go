@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"techberry-go/common/v2/core/components/redis"
 	"techberry-go/common/v2/facade"
 	"techberry-go/common/v2/facade/adapter"
 	"techberry-go/micronode/service/commons/firebase"
@@ -391,7 +392,7 @@ func (c *ServiceController) getRedisConnection(dbnum int) facade.CacheHandler {
 		c.Logger.Info().Msgf("redis_host : %s", host)
 		c.Logger.Info().Msgf("redis_port : %d", port)
 		c.Logger.Info().Msgf("dbnum : %d", dbnum)
-		connector := c.Connector.GetRedisConnection(host, port, dbnum, 10)
+		connector := redis.NewAdapter(host, port, dbnum, 10)
 		c.Logger.Info().Msgf("redis_connector : %v", connector)
 		return connector
 	}
