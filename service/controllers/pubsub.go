@@ -384,13 +384,17 @@ func (c *ServiceController) getRedisConnection(dbnum int) facade.CacheHandler {
 		//set default value
 		config.SetDefault("redis.host", "redis")
 		config.SetDefault("redis.port", 6379)
+		config.SetDefault("redis.dbnum", 4)
 
 		host := config.GetString("redis.host")
 		port := config.GetInt("redis.port")
 
 		c.Logger.Info().Msgf("redis_host : %s", host)
 		c.Logger.Info().Msgf("redis_port : %d", port)
-		return c.Connector.GetRedisConnection(host, port, dbnum, 1)
+		c.Logger.Info().Msgf("dbnum : %d", dbnum)
+		connector := c.Connector.GetRedisConnection(host, port, dbnum, 10)
+		c.Logger.Info().Msgf("redis_connector : %v", connector)
+		return connector
 	}
 	return nil
 }
