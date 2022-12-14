@@ -23,8 +23,10 @@ func (c *ServiceController) RedisCache(input any) (any, error) {
 	data_type := mapHandler.String(m, "type", "array")
 	expire := mapHandler.Int(m, "expire", 30)
 	dbnum := mapHandler.Int(m, "dbnum", 9)
+	c.Logger.Info().Msgf("action : %s", action)
 	if action == "set" || action == "get" {
 		redis := c.getRedisConnection(dbnum)
+		c.Logger.Info().Msgf("redis connnection : %v", redis)
 		if action == "set" {
 			items := mapHandler.GetArray(m, "items")
 			for _, v := range items {
@@ -377,6 +379,7 @@ func (c *ServiceController) getRedisConnection(dbnum int) facade.CacheHandler {
 	config.SetDefault("redis.enable", false)
 	redis_enable := config.GetBool("redis.enable")
 
+	c.Logger.Info().Msgf("redis_enable : %t", redis_enable)
 	if redis_enable {
 		//set default value
 		config.SetDefault("redis.host", "redis")
