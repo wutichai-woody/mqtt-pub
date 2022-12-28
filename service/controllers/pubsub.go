@@ -8,7 +8,6 @@ import (
 	"techberry-go/common/v2/core/components/redis"
 	"techberry-go/common/v2/facade"
 	"techberry-go/common/v2/facade/adapter"
-	"techberry-go/micronode/service/commons/firebase"
 	"time"
 )
 
@@ -32,10 +31,7 @@ func (c *ServiceController) RedisCache(input any) (any, error) {
 				if obj != nil {
 					key := mapHandler.String(obj, "key", "")
 					value := mapHandler.String(obj, "value", "")
-					b, err := json.Marshal(value)
-					if err == nil {
-						err = redis.Set(key, string(b), time.Duration(expire)*time.Second)
-					}
+					redis.Set(key, value, time.Duration(expire)*time.Second)
 				}
 			}
 			b := []byte("{\"status\": true}")
@@ -50,14 +46,8 @@ func (c *ServiceController) RedisCache(input any) (any, error) {
 			for _, item := range items {
 				key := item.(string)
 				if key != "" {
-					s, err := redis.Get(key, autoRemove)
-					if err == nil {
-						var value any
-						err := json.Unmarshal([]byte(s), &value)
-						if err == nil {
-							result[key] = value
-						}
-					}
+					s, _ := redis.Get(key, autoRemove)
+					result[key] = s
 				}
 			}
 			result_map := map[string]any{
@@ -73,7 +63,7 @@ func (c *ServiceController) RedisCache(input any) (any, error) {
 
 func (c *ServiceController) Notify(input any) (any, error) {
 	m := input.(map[string]any)
-	output, err := firebase.SendFirebaseNotification(m)
+	output, err := c.ServiceCommon.SendFirebaseNotification(m)
 	if err != nil {
 		b := []byte(fmt.Sprintf("{\"error\": \"%s\"}", err.Error()))
 		return b, nil
@@ -152,6 +142,8 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 		key_topic_token := fmt.Sprintf("%s_topic_token", k)
 		//key_device_key := fmt.Sprintf("%s_device_key", k)
 		topicToken, err := c.Redis.Get(key_topic_token, false)
+		if err == nil {
+		}
 		if err == nil && topicToken != "" {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
@@ -382,7 +374,7 @@ func (c *ServiceController) getRedisConnection(dbnum int) facade.CacheHandler {
 
 		host := config.GetString("redis.host")
 		port := config.GetInt("redis.port")
-
+		//connector := c.Connector.GetRedisConnection(host, port, dbnum, 10)
 		connector := redis.NewAdapter(host, port, dbnum, 10)
 		return connector
 	}
