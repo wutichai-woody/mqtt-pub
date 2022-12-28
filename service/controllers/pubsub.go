@@ -142,8 +142,6 @@ func (c *ServiceController) PublishMessageSignal(input any) (any, error) {
 		key_topic_token := fmt.Sprintf("%s_topic_token", k)
 		//key_device_key := fmt.Sprintf("%s_device_key", k)
 		topicToken, err := c.Redis.Get(key_topic_token, false)
-		if err == nil {
-		}
 		if err == nil && topicToken != "" {
 			c.Logger.Info().Msgf("found topic token : %s (%s)", topicToken, k)
 			msg := map[string]any{
