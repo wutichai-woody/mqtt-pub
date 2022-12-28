@@ -61,6 +61,7 @@ func (c *ServiceController) RedisCache(input any) (any, error) {
 	}
 }
 
+/*
 func (c *ServiceController) Notify(input any) (any, error) {
 	m := input.(map[string]any)
 	output, err := c.ServiceCommon.SendFirebaseNotification(m)
@@ -70,6 +71,7 @@ func (c *ServiceController) Notify(input any) (any, error) {
 	}
 	return output, nil
 }
+*/
 
 func (c *ServiceController) SyncCache(input any) (any, error) {
 	m := input.(map[string]any)
